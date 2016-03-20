@@ -1,12 +1,18 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#define MAX_OPENED			3
-#define SUCCESS             0
-#define INVALID_PARAMETERS -1
-#define CANNOT_ACCESS_FILE -3
-#define CANNOT_CREATE_FILE -4
-#define FORMAT_NOT_ALLOWED -5
+#define MAX_OPENED					 3
+#define SUCCESS						 0
+#define INVALID_PARAMETERS			-1
+#define EXTERNAL_INVALID_PARAMETERS -2
+#define CANNOT_ACCESS_FILE			-3
+#define CANNOT_CREATE_FILE			-4
+#define FORMAT_NOT_ALLOWED			-5
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
+#include <string.h>
 
 int dev_format(char *name, int block_size, int block_count);//return -1(fail), 0(success)
 int dev_open(char *name);//return index

@@ -1,8 +1,4 @@
 #include "device.h"
-#include <stdio.h>////////////////////////////////////////////si la incluyo en el .h no funciona
-#include <stdlib.h>
-#include <inttypes.h>
-#include <string.h>
 
 struct file_opened_in_table{
 	int buffer_size;

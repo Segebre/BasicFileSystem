@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <editline/readline.h>
+#include "console.h"
 
 int main(int argc, char *argv[])
 {

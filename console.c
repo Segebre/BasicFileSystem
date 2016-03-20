@@ -246,7 +246,7 @@ int c_process_line(char *line)
 
 int is_digit(char *p)
 {
-	int iterator;
+	unsigned int iterator;
 	for (iterator = 0; iterator < strlen(p); iterator++)
 	{
 		if (!isdigit(p[iterator]))
