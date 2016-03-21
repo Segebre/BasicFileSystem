@@ -42,12 +42,13 @@ int dev_format(char *name, int block_size, int block_count)
 	fwrite(&metadata, 1, sizeof(struct file_metadata), f);
 
 	//creamos un buffer de tamano especificado y creamos una cantidad de bloques especificada
-	char *buffer = malloc(block_size);
-	memset(buffer, 0, sizeof(buffer));
+	char *buffer = (char *) malloc(block_size);
+	memset(buffer, 0, block_size);
 	for (i = 0; i < block_count; i++)
-		fwrite(buffer, 1, sizeof(buffer), f);
+		fwrite(buffer, 1, block_size, f);
 
 	fclose(f);
+	free(buffer);
 	return SUCCESS;
 }
 
@@ -98,8 +99,11 @@ int dev_open(char *name)
 int dev_write_block(int dh, char *buffer, int block_index)
 {
 	//chequea si el dh es aceptable, si el archivo esta abierto y si el bloque existe
-	if (dh < 0 || dh >= MAX_OPENED || block_index < 0 || device_file_table[dh].block_count <= block_index || device_file_table[dh].file == NULL)
+	if (dh < 0 || dh >= MAX_OPENED)
 		return INVALID_PARAMETERS;//printf("File %s\n not opened", device_file_table[dh].name);
+
+	if (block_index < 0 || device_file_table[dh].block_count <= block_index || device_file_table[dh].file == NULL)
+		return EXTERNAL_INVALID_PARAMETERS;
 
 	//se mueve al bloque que va a escribir incluyendo el sizeof(struct file_inodo) del inodo personal de cada archivo
 	fseek(device_file_table[dh].file, (block_index*device_file_table[dh].buffer_size) + sizeof(struct file_metadata), SEEK_SET);
@@ -110,8 +114,11 @@ int dev_write_block(int dh, char *buffer, int block_index)
 int dev_read_block(int dh, char *buffer, int block_index)
 {
 	//chequea si el dh es aceptable, si el archivo esta abierto y si el bloque existe
-	if (dh < 0 || dh >= MAX_OPENED || block_index < 0 || device_file_table[dh].block_count <= block_index || device_file_table[dh].file == NULL)
+	if (dh < 0 || dh >= MAX_OPENED)
 		return INVALID_PARAMETERS;//printf("File %s\n not opened", device_file_table[dh].name);
+
+	if (block_index < 0 || device_file_table[dh].block_count <= block_index || device_file_table[dh].file == NULL)
+		return EXTERNAL_INVALID_PARAMETERS;
 
 	//se mueve al bloque que va a leer incluyendo el sizeof(struct file_inodo) del inodo personal de cada archivo
 	fseek(device_file_table[dh].file, (block_index*device_file_table[dh].buffer_size) + sizeof(struct file_metadata), SEEK_SET);

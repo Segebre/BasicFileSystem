@@ -8,6 +8,7 @@
 #define CANNOT_ACCESS_FILE			-3
 #define CANNOT_CREATE_FILE			-4
 #define FORMAT_NOT_ALLOWED			-5
+#define COMMAND_NOT_FOUND			-6
 
 #include <stdio.h>
 #include <stdlib.h>

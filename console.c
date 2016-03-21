@@ -32,7 +32,35 @@ int c_init(char *p)
 		if (!strcmp(line, "exit") || !strcmp(line, "quit")) {
 			break;
 		}
-		c_process_line(line);
+
+		switch (c_process_line(line))
+		{
+		case SUCCESS:
+			printf("Comando ejecutado con exito!\n");
+			fflush(stdout);
+			break;
+		case INVALID_PARAMETERS:
+			printf("Error: Ingreso de parametro no esperado!\n");
+			break;
+		case EXTERNAL_INVALID_PARAMETERS:
+			printf("Error: Los parametros ingresados causan conflictos de logica!\n");
+			break;
+		case CANNOT_ACCESS_FILE:
+			printf("Error: El archivo no se puede accesar!\n");
+			break;
+		case CANNOT_CREATE_FILE:
+			printf("Error: El archivo no se pudo crear!\n");
+			break;
+		case FORMAT_NOT_ALLOWED:
+			printf("Error: Formato no aceptado!\n");
+			break;
+		case COMMAND_NOT_FOUND:
+			printf("Error: El commando ingresado no existe!\n");
+			break;
+		default:
+			printf("Error indefinido!\n");
+		}
+
 	}
 	printf("\nExiting ...\n");
 	return 0;
@@ -129,10 +157,12 @@ int c_process_line(char *line)
 			//se imprime
 			for (i = 0; i < length; i++)
 			{
-				printf("%x", buffer[i]);
+				printf("%0*x", 2, buffer[i]);
 				fflush(stdout);
 			}
 			printf("\n");
+			free(buffer);
+			return SUCCESS;
 		}
 	}
 	else if (i == 4)
@@ -160,6 +190,7 @@ int c_process_line(char *line)
 			printf("Name:\t\t%s\n", file_table[i].name);
 			printf("Block size:\t%d\n", file_table[i].buffer_size);
 			printf("Block count:\t%d\n", file_table[i].block_count);
+			return SUCCESS;
 
 		}
 
@@ -196,10 +227,13 @@ int c_process_line(char *line)
 			//se imprime
 			for (i = 0; i < length; i++)
 			{
-				printf("%x", buffer[i]);
+				printf("%0*x", 2, buffer[i]);
 				fflush(stdout);
 			}
 			printf("\n");
+			free(buffer);
+			return SUCCESS;
+
 		}
 	}
 	else if (i == 3)
@@ -216,6 +250,7 @@ int c_process_line(char *line)
 					printf("%s\n", file_table[i].name);
 				}
 			}
+			return SUCCESS;
 		}
 
 		//si se ingreso "close device"
@@ -240,7 +275,7 @@ int c_process_line(char *line)
 	}
 
 	free(line);
-	return SUCCESS;
+	return COMMAND_NOT_FOUND;
 }
 
 

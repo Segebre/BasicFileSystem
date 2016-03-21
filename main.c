@@ -5,7 +5,23 @@ int main(int argc, char *argv[])
 	c_init("$ ");
 }
 
-
+/*char *buffer = (char *) malloc(10);
+memset(buffer, 0, 10);
+dev_format("hola", 10, 5);
+int i = dev_open("hola");
+buffer[0] = 1;
+buffer[9] = 1;
+dev_write_block(i, buffer, 0);
+dev_write_block(i, buffer, 0);
+dev_write_block(i, buffer, 1);
+dev_write_block(i, buffer, 1);
+dev_write_block(i, buffer, 2);
+dev_write_block(i, buffer, 2);
+dev_write_block(i, buffer, 3);
+dev_write_block(i, buffer, 3);
+dev_write_block(i, buffer, 4);
+dev_write_block(i, buffer, 4);
+free(buffer);*/
 
 /*#include <stdio.h>
 #include <stdlib.h>		//for free()
