@@ -4,7 +4,7 @@ struct metadata{
 	char name[32];
 	int buffer_size;
 	int block_count;
-	int user_reference;
+	char user_reference[32];
 };
 
 int is_digit(char *p);
@@ -18,7 +18,10 @@ int c_init(char *p)
 {
 	int i;
 	for (i = 0; i < MAX_OPENED; i++)
-		file_table[i].user_reference = -1;
+	{
+		memset(file_table[i].user_reference, 0, 32);
+		memcpy(file_table[i].user_reference, "Segebre", 7);
+	}
 
 	while (1) {
 		line = readline(p);
@@ -103,13 +106,9 @@ int c_process_line(char *line)
 			//chequeamos que no exista la referencia que nos dieron
 			for (i = 0; i < MAX_OPENED; i++)
 			{
-				if (file_table[i].user_reference == atoi(imput[4]))
+				if (!strcmp(file_table[i].user_reference, imput[4]))
 					return EXTERNAL_INVALID_PARAMETERS;
 			}
-
-			//chequeamos que los digitos sean digitos
-			if (!is_digit(imput[4]))
-				return INVALID_PARAMETERS;
 
 			//guardamos el valor retornado y si se abrio el archivo
 			int internal_reference = dev_open(imput[2]);
@@ -120,7 +119,7 @@ int c_process_line(char *line)
 			strcpy(file_table[internal_reference].name, imput[2]);
 			file_table[internal_reference].buffer_size = get_buffer_size(internal_reference);
 			file_table[internal_reference].block_count = get_block_count(internal_reference);
-			file_table[internal_reference].user_reference = atoi(imput[4]);
+			memcpy(file_table[internal_reference].user_reference, imput[4], 32);
 			return SUCCESS;
 		}
 
@@ -128,13 +127,13 @@ int c_process_line(char *line)
 		else if (!strcmp(imput[0], "read") && !strcmp(imput[1], "block"))
 		{
 			//chequeamos que los digitos sean digitos
-			if (!is_digit(imput[2]) || !is_digit(imput[3]) || !is_digit(imput[4]) || atoi(imput[4]) <= 0)
+			if (!is_digit(imput[3]) || !is_digit(imput[4]) || atoi(imput[4]) <= 0)
 				return INVALID_PARAMETERS;
 
 			//buscamos el archivo
 			for (i = 0; i < MAX_OPENED; i++)
 			{
-				if (file_table[i].user_reference == atoi(imput[2]))
+				if (!strcmp(file_table[i].user_reference, imput[2]))
 					break;
 			}
 
@@ -170,14 +169,10 @@ int c_process_line(char *line)
 		//si se ingreso "show metadata from"
 		if (!strcmp(imput[0], "show") && !strcmp(imput[1], "metadata") && !strcmp(imput[2], "from"))
 		{
-			//chequeamos que imput[3] sea un digito
-			if (!is_digit(imput[3]))
-				return INVALID_PARAMETERS;
-
 			//buscamos el archivo
 			for (i = 0; i < MAX_OPENED; i++)
 			{
-				if (file_table[i].user_reference == atoi(imput[3]))
+				if (!strcmp(file_table[i].user_reference, imput[3]))
 					break;
 			}
 
@@ -186,7 +181,11 @@ int c_process_line(char *line)
 				return CANNOT_ACCESS_FILE;
 
 			//lo imprimimos
-			printf("Reference:\t%d\n", file_table[i].user_reference);
+			int j = 0;
+			printf("Reference:\t");
+			while (j < strlen(file_table[i].user_reference))
+				printf("%c", file_table[i].user_reference[j++]);
+			printf("\n");
 			printf("Name:\t\t%s\n", file_table[i].name);
 			printf("Block size:\t%d\n", file_table[i].buffer_size);
 			printf("Block count:\t%d\n", file_table[i].block_count);
@@ -198,13 +197,13 @@ int c_process_line(char *line)
 		else if (!strcmp(imput[0], "read") && !strcmp(imput[1], "block"))
 		{
 			//chequeamos que los digitos sean digitos
-			if (!is_digit(imput[2]) || !is_digit(imput[3]))
+			if (!is_digit(imput[3]))
 				return INVALID_PARAMETERS;
 
 			//buscamos el archivo
 			for (i = 0; i < MAX_OPENED; i++)
 			{
-				if (file_table[i].user_reference == atoi(imput[2]))
+				if (!strcmp(file_table[i].user_reference, imput[2]))
 					break;
 			}
 
@@ -244,9 +243,12 @@ int c_process_line(char *line)
 			//recorremos el arreglo de abiertos y los imprimimos
 			for (i = 0; i < MAX_OPENED; i++)
 			{
-				if (file_table[i].user_reference != -1)
+				if (strcmp(file_table[i].user_reference, "Segebre"))
 				{
-					printf("%d\t", file_table[i].user_reference);
+					int j = 0;
+					while (j < strlen(file_table[i].user_reference))
+						printf("%c", file_table[i].user_reference[j++]);
+					printf("\t\t\t");
 					printf("%s\n", file_table[i].name);
 				}
 			}
@@ -256,17 +258,16 @@ int c_process_line(char *line)
 		//si se ingreso "close device"
 		else if (!strcmp(imput[0], "close") && !strcmp(imput[1], "device"))
 		{
-			//chequeamos que los digitos sean digitos
-			if (!is_digit(imput[2]))
-				return INVALID_PARAMETERS;
-
 			for (i = 0; i < MAX_OPENED; i++)
 			{
-				if (file_table[i].user_reference == atoi(imput[2]))
+				if (!strcmp(file_table[i].user_reference, imput[2]))
 				{
 					int result = dev_close(i);
 					if (result == 0)
-						file_table[i].user_reference = -1;
+					{
+						memset(file_table[i].user_reference, 0, 32);
+						memcpy(file_table[i].user_reference, "Segebre", 7);
+					}
 					return result;
 				}
 			}
