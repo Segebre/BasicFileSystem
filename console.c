@@ -1,18 +1,9 @@
 #include "console.h"
 
-struct metadata{
-	char name[32];
-	int buffer_size;
-	int block_count;
-	char user_reference[32];
-};
-
 int is_digit(char *p);
 
 const char *prompt;
 char *line;
-
-static struct metadata file_table[MAX_OPENED];
 
 int c_init(char *p)
 {
@@ -216,7 +207,7 @@ int c_process_line(char *line)
 			//recorremos el arreglo de abiertos y los imprimimos
 			for (i = 0; i < size_of_arreglo; i++)
 			{
-				struct hash_node* node = arreglo[i];
+				struct hash_node* node = get_first(i);
 				if (node == NULL)
 					continue;
 				for (; node != NULL; node = node->next)
