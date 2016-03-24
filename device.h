@@ -1,7 +1,7 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#define MAX_OPENED					 3
+#define MAX_OPENED					 26
 #define SUCCESS						 0
 #define INVALID_PARAMETERS			-1
 #define EXTERNAL_INVALID_PARAMETERS -2

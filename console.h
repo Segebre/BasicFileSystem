@@ -2,6 +2,7 @@
 #define CONSOLE_H
 
 #include "device.h"
+#include "hash.h"
 #include <editline/readline.h>
 
 int c_init(char *p);

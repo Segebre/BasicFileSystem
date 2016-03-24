@@ -16,12 +16,7 @@ static struct metadata file_table[MAX_OPENED];
 
 int c_init(char *p)
 {
-	int i;
-	for (i = 0; i < MAX_OPENED; i++)
-	{
-		memset(file_table[i].user_reference, 0, 32);
-		memcpy(file_table[i].user_reference, "Segebre", 7);
-	}
+	init();
 
 	while (1) {
 		line = readline(p);
@@ -104,23 +99,12 @@ int c_process_line(char *line)
 		else if (!strcmp(imput[0], "open") && !strcmp(imput[1], "device") && !strcmp(imput[3], "as"))
 		{
 			//chequeamos que no exista la referencia que nos dieron
-			for (i = 0; i < MAX_OPENED; i++)
-			{
-				if (!strcmp(file_table[i].user_reference, imput[4]))
+			if (lookup(imput[4]) != NULL)
 					return EXTERNAL_INVALID_PARAMETERS;
-			}
-
-			//guardamos el valor retornado y si se abrio el archivo
-			int internal_reference = dev_open(imput[2]);
-			if (internal_reference < 0)
-				return internal_reference;
 
 			//lo agregamos a la tabla de abiertos
-			strcpy(file_table[internal_reference].name, imput[2]);
-			file_table[internal_reference].buffer_size = get_buffer_size(internal_reference);
-			file_table[internal_reference].block_count = get_block_count(internal_reference);
-			memcpy(file_table[internal_reference].user_reference, imput[4], 32);
-			return SUCCESS;
+			return add(imput[2], imput[4]);
+
 		}
 
 		//si se ingreso "read block"
@@ -131,27 +115,27 @@ int c_process_line(char *line)
 				return INVALID_PARAMETERS;
 
 			//buscamos el archivo
-			for (i = 0; i < MAX_OPENED; i++)
-			{
-				if (!strcmp(file_table[i].user_reference, imput[2]))
-					break;
-			}
+			struct hash_node* node = lookup(imput[2]);
 
 			//revisamos que se encontro
-			if (i == MAX_OPENED)
-				return CANNOT_ACCESS_FILE;
+			if (node == NULL)
+				return EXTERNAL_INVALID_PARAMETERS;
 
 			//la cantidad que vamos a leer es length
 			int length = atoi(imput[4]);
 
 			//si quiere leer mas de lo que se puede solo se lee el maximo
-			if (length > file_table[i].buffer_size)
-				length = file_table[i].buffer_size;
+			if (length > node->buffer_size)
+				length = node->buffer_size;
 
 			//creamos un buffer para leer, leemos y revisamos que no hay errores
-			char *buffer = malloc(file_table[i].buffer_size);
-			if (dev_read_block(i, buffer, atoi(imput[3])) != SUCCESS)
-				return dev_read_block(i, buffer, atoi(imput[3]));
+			char *buffer = malloc(node->buffer_size);
+			int result = dev_read_block(node->internal_reference, buffer, atoi(imput[3]));
+			if (result != SUCCESS)
+			{
+				free(buffer);
+				return result;
+			}
 
 			//se imprime
 			for (i = 0; i < length; i++)
@@ -170,25 +154,14 @@ int c_process_line(char *line)
 		if (!strcmp(imput[0], "show") && !strcmp(imput[1], "metadata") && !strcmp(imput[2], "from"))
 		{
 			//buscamos el archivo
-			for (i = 0; i < MAX_OPENED; i++)
-			{
-				if (!strcmp(file_table[i].user_reference, imput[3]))
-					break;
-			}
+			struct hash_node* node = lookup(imput[3]);
 
 			//revisamos que se encontro
-			if (i == MAX_OPENED)
-				return CANNOT_ACCESS_FILE;
+			if (node == NULL)
+				return EXTERNAL_INVALID_PARAMETERS;
 
 			//lo imprimimos
-			int j = 0;
-			printf("Reference:\t");
-			while (j < strlen(file_table[i].user_reference))
-				printf("%c", file_table[i].user_reference[j++]);
-			printf("\n");
-			printf("Name:\t\t%s\n", file_table[i].name);
-			printf("Block size:\t%d\n", file_table[i].buffer_size);
-			printf("Block count:\t%d\n", file_table[i].block_count);
+			printf("Reference:\t%s\nName:\t\t%s\nBlock size:\t%d\nBlock count:\t%d\n", node->user_reference, node->name, node->buffer_size, node->block_count);
 			return SUCCESS;
 
 		}
@@ -201,27 +174,27 @@ int c_process_line(char *line)
 				return INVALID_PARAMETERS;
 
 			//buscamos el archivo
-			for (i = 0; i < MAX_OPENED; i++)
-			{
-				if (!strcmp(file_table[i].user_reference, imput[2]))
-					break;
-			}
+			struct hash_node* node = lookup(imput[2]);
 
 			//revisamos que se encontro
-			if (i == MAX_OPENED)
-				return CANNOT_ACCESS_FILE;
+			if (node == NULL)
+				return EXTERNAL_INVALID_PARAMETERS;
 
 			//la cantidad que vamos a leer es length
 			int length = 32;
 
 			//si quiere leer mas de lo que se puede solo se lee el maximo
-			if (length > file_table[i].buffer_size)
-				length = file_table[i].buffer_size;
+			if (length > node->buffer_size)
+				length = node->buffer_size;
 
 			//creamos un buffer para leer, leemos y revisamos que no hayan errores
-			char *buffer = malloc(file_table[i].buffer_size);
-			if (dev_read_block(i, buffer, atoi(imput[3])) != SUCCESS)
-				return dev_read_block(i, buffer, atoi(imput[3]));
+			char *buffer = (char *) malloc(node->buffer_size);
+			int result = dev_read_block(node->internal_reference, buffer, atoi(imput[3]));
+			if (result != SUCCESS)
+			{
+				free(buffer);
+				return result;
+			}
 
 			//se imprime
 			for (i = 0; i < length; i++)
@@ -241,16 +214,13 @@ int c_process_line(char *line)
 		if (!strcmp(imput[0], "show") && !strcmp(imput[1], "open") && !strcmp(imput[2], "devices"))
 		{
 			//recorremos el arreglo de abiertos y los imprimimos
-			for (i = 0; i < MAX_OPENED; i++)
+			for (i = 0; i < size_of_arreglo; i++)
 			{
-				if (strcmp(file_table[i].user_reference, "Segebre"))
-				{
-					int j = 0;
-					while (j < strlen(file_table[i].user_reference))
-						printf("%c", file_table[i].user_reference[j++]);
-					printf("\t\t\t");
-					printf("%s\n", file_table[i].name);
-				}
+				struct hash_node* node = arreglo[i];
+				if (node == NULL)
+					continue;
+				for (; node != NULL; node = node->next)
+					printf("%s\t\t\t%s\n", node->user_reference, node->name);
 			}
 			return SUCCESS;
 		}
@@ -258,20 +228,15 @@ int c_process_line(char *line)
 		//si se ingreso "close device"
 		else if (!strcmp(imput[0], "close") && !strcmp(imput[1], "device"))
 		{
-			for (i = 0; i < MAX_OPENED; i++)
-			{
-				if (!strcmp(file_table[i].user_reference, imput[2]))
-				{
-					int result = dev_close(i);
-					if (result == 0)
-					{
-						memset(file_table[i].user_reference, 0, 32);
-						memcpy(file_table[i].user_reference, "Segebre", 7);
-					}
-					return result;
-				}
-			}
-			return CANNOT_ACCESS_FILE;
+			//buscamos el archivo
+			struct hash_node* node = lookup(imput[2]);
+
+			//revisamos que se encontro
+			if (node == NULL)
+				return EXTERNAL_INVALID_PARAMETERS;
+			
+			//lo eliminamos
+			return rem_node(node->user_reference);
 		}
 	}
 
