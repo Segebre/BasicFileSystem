@@ -1,5 +1,4 @@
 #include "hash.h"
-#include "device.h"
 
 struct hash_node *arreglo[size_of_arreglo];
 
@@ -33,13 +32,13 @@ int add(char* name, char* user_reference) {
 	int index = hash(user_reference);
 	struct hash_node * new_node = (struct hash_node *) malloc(sizeof(struct hash_node));
 	memcpy(new_node->name, name, 32);
-	new_node->block_count = get_block_count(internal_reference);
 	new_node->buffer_size = get_buffer_size(internal_reference);
+	new_node->block_count = get_block_count(internal_reference);
+	new_node->format_status = is_format(internal_reference);
 	new_node->internal_reference = internal_reference;
 	memcpy(new_node->user_reference, user_reference, 32);
 	new_node->next = arreglo[index];
 	arreglo[index] = new_node;
-	//free(new_node);
 
 	return SUCCESS;
 }
@@ -79,8 +78,12 @@ int rem_node(char* user_reference) {
 		int result = dev_close(arreglo[index]->internal_reference);
 		
 		//lo borramos
-		if (result == 0)
+		if (result == SUCCESS)
+		{
+			struct hash_node * temp = arreglo[index];
 			arreglo[index] = arreglo[index]->next;
+			free(temp);
+		}
 		return result;
 	}
 
@@ -93,8 +96,12 @@ int rem_node(char* user_reference) {
 			int result = dev_close(temp->next->internal_reference);
 			
 			//lo borramos
-			if (result == 0)
+			if (result == SUCCESS)
+			{
+				struct hash_node * a_borrar = temp->next;
 				temp->next = temp->next->next;
+				free(a_borrar);
+			}
 			return result;
 		}
 		temp = temp->next;

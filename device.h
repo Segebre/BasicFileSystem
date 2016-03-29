@@ -8,7 +8,8 @@
 #define CANNOT_ACCESS_FILE			-3
 #define CANNOT_CREATE_FILE			-4
 #define FORMAT_NOT_ALLOWED			-5
-#define COMMAND_NOT_FOUND			-6
+#define DEVICE_NOT_FORMAT			-6
+#define COMMAND_NOT_FOUND			-7
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,5 +24,8 @@ int dev_close(int dh);
 
 int get_buffer_size(int dh);
 int get_block_count(int dh);
+FILE* get_file(int dh);
+int is_format(int dh);
+int set_format(int dh);
 
 #endif // DEVICE_H

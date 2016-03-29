@@ -120,7 +120,7 @@ int c_process_line(char *line)
 				length = node->buffer_size;
 
 			//creamos un buffer para leer, leemos y revisamos que no hay errores
-			char *buffer = malloc(node->buffer_size);
+			unsigned char *buffer = malloc(node->buffer_size);
 			int result = dev_read_block(node->internal_reference, buffer, atoi(imput[3]));
 			if (result != SUCCESS)
 			{
@@ -179,7 +179,7 @@ int c_process_line(char *line)
 				length = node->buffer_size;
 
 			//creamos un buffer para leer, leemos y revisamos que no hayan errores
-			char *buffer = (char *) malloc(node->buffer_size);
+			unsigned char *buffer = (char *) malloc(node->buffer_size);
 			int result = dev_read_block(node->internal_reference, buffer, atoi(imput[3]));
 			if (result != SUCCESS)
 			{

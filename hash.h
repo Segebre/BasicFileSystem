@@ -1,14 +1,13 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "device.h"
 
 struct hash_node{
 	char name[32];
 	int buffer_size;
 	int block_count;
+	int format_status;
 	int internal_reference;
 	char user_reference[32];
 	struct hash_node *next;

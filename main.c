@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[])
 {
-	c_init("$ ");
+	c_init("$ ");                                     //cambiar los get a de_get_...
 }
 
 /*char *buffer = (char *) malloc(10);
