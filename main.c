@@ -2,7 +2,13 @@
 
 int main(int argc, char *argv[])
 {
-	c_init("$ ");                                     //cambiar los get a de_get_...
+	format_device("fish");
+	int dh = dev_open("fish"), i = 0;
+	while (!file_create(dh, "hoa"))
+		i++;
+
+	printf("%d\n", i);
+	//c_init("$ ");
 }
 
 /*char *buffer = (char *) malloc(10);

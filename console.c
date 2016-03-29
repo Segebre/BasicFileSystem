@@ -7,7 +7,7 @@ char *line;
 
 int c_init(char *p)
 {
-	init();
+	hash_init();
 
 	while (1) {
 		line = readline(p);
@@ -34,10 +34,10 @@ int c_init(char *p)
 		case EXTERNAL_INVALID_PARAMETERS:
 			printf("Error: Los parametros ingresados causan conflictos de logica!\n");
 			break;
-		case CANNOT_ACCESS_FILE:
+		case CANNOT_ACCESS_DEVICE:
 			printf("Error: El archivo no se puede accesar!\n");
 			break;
-		case CANNOT_CREATE_FILE:
+		case CANNOT_CREATE_DEVICE:
 			printf("Error: El archivo no se pudo crear!\n");
 			break;
 		case FORMAT_NOT_ALLOWED:
@@ -90,11 +90,11 @@ int c_process_line(char *line)
 		else if (!strcmp(imput[0], "open") && !strcmp(imput[1], "device") && !strcmp(imput[3], "as"))
 		{
 			//chequeamos que no exista la referencia que nos dieron
-			if (lookup(imput[4]) != NULL)
+			if (hash_lookup(imput[4]) != NULL)
 					return EXTERNAL_INVALID_PARAMETERS;
 
 			//lo agregamos a la tabla de abiertos
-			return add(imput[2], imput[4]);
+			return hash_add(imput[2], imput[4]);
 
 		}
 
@@ -106,7 +106,7 @@ int c_process_line(char *line)
 				return INVALID_PARAMETERS;
 
 			//buscamos el archivo
-			struct hash_node* node = lookup(imput[2]);
+			struct hash_node* node = hash_lookup(imput[2]);
 
 			//revisamos que se encontro
 			if (node == NULL)
@@ -145,7 +145,7 @@ int c_process_line(char *line)
 		if (!strcmp(imput[0], "show") && !strcmp(imput[1], "metadata") && !strcmp(imput[2], "from"))
 		{
 			//buscamos el archivo
-			struct hash_node* node = lookup(imput[3]);
+			struct hash_node* node = hash_lookup(imput[3]);
 
 			//revisamos que se encontro
 			if (node == NULL)
@@ -165,7 +165,7 @@ int c_process_line(char *line)
 				return INVALID_PARAMETERS;
 
 			//buscamos el archivo
-			struct hash_node* node = lookup(imput[2]);
+			struct hash_node* node = hash_lookup(imput[2]);
 
 			//revisamos que se encontro
 			if (node == NULL)
@@ -220,14 +220,14 @@ int c_process_line(char *line)
 		else if (!strcmp(imput[0], "close") && !strcmp(imput[1], "device"))
 		{
 			//buscamos el archivo
-			struct hash_node* node = lookup(imput[2]);
+			struct hash_node* node = hash_lookup(imput[2]);
 
 			//revisamos que se encontro
 			if (node == NULL)
 				return EXTERNAL_INVALID_PARAMETERS;
 			
 			//lo eliminamos
-			return rem_node(node->user_reference);
+			return hash_remove_node(node->user_reference);
 		}
 	}
 

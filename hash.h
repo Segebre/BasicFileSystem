@@ -16,10 +16,10 @@ struct hash_node{
 #define size_of_arreglo	13
 
 unsigned int hash(char* reference);
-int init();
-int add(char* name, char* user_reference);
-struct hash_node* lookup(char* user_reference);
-int rem_node(char* user_reference);
+int hash_init();
+int hash_add(char* name, char* user_reference);
+struct hash_node* hash_lookup(char* user_reference);
+int hash_remove_node(char* user_reference);
 
 struct hash_node* get_first(int index);
 

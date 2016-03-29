@@ -5,11 +5,13 @@
 #define SUCCESS						 0
 #define INVALID_PARAMETERS			-1
 #define EXTERNAL_INVALID_PARAMETERS -2
-#define CANNOT_ACCESS_FILE			-3
-#define CANNOT_CREATE_FILE			-4
-#define FORMAT_NOT_ALLOWED			-5
-#define DEVICE_NOT_FORMAT			-6
-#define COMMAND_NOT_FOUND			-7
+#define CANNOT_ACCESS_DEVICE		-3
+#define CANNOT_CREATE_DEVICE		-4
+#define CANNOT_ACCESS_FILE			-5
+#define CANNOT_CREATE_FILE			-6
+#define FORMAT_NOT_ALLOWED			-7
+#define DEVICE_NOT_FORMAT			-8
+#define COMMAND_NOT_FOUND			-9
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,10 +24,10 @@ int dev_read_block(int dh, char *buffer, int block_index);
 int dev_write_block(int dh, char *buffer, int block_index);
 int dev_close(int dh);
 
-int get_buffer_size(int dh);
-int get_block_count(int dh);
-FILE* get_file(int dh);
-int is_format(int dh);
-int set_format(int dh);
+int dev_get_buffer_size(int dh);
+int dev_get_block_count(int dh);
+FILE* dev_get_file(int dh);
+int dev_is_format(int dh);
+int dev_set_format(int dh);
 
 #endif // DEVICE_H

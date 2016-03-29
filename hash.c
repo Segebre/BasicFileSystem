@@ -12,7 +12,7 @@ unsigned int hash(char* reference) {
 	return x % size_of_arreglo;
 }
 
-int init() {
+int hash_init() {
 	int i;
 	
 	//inicializamos todo el arreglo en NULL
@@ -21,7 +21,7 @@ int init() {
 	return 0;
 }
 
-int add(char* name, char* user_reference) {
+int hash_add(char* name, char* user_reference) {
 	
 	//guardamos el valor retornado y si se abrio el archivo
 	int internal_reference = dev_open(name);
@@ -32,9 +32,9 @@ int add(char* name, char* user_reference) {
 	int index = hash(user_reference);
 	struct hash_node * new_node = (struct hash_node *) malloc(sizeof(struct hash_node));
 	memcpy(new_node->name, name, 32);
-	new_node->buffer_size = get_buffer_size(internal_reference);
-	new_node->block_count = get_block_count(internal_reference);
-	new_node->format_status = is_format(internal_reference);
+	new_node->buffer_size = dev_get_buffer_size(internal_reference);
+	new_node->block_count = dev_get_block_count(internal_reference);
+	new_node->format_status = dev_is_format(internal_reference);
 	new_node->internal_reference = internal_reference;
 	memcpy(new_node->user_reference, user_reference, 32);
 	new_node->next = arreglo[index];
@@ -43,7 +43,7 @@ int add(char* name, char* user_reference) {
 	return SUCCESS;
 }
 
-struct hash_node* lookup(char* user_reference) {
+struct hash_node* hash_lookup(char* user_reference) {
 	//conseguimos el index de donde vamos a recorrer
 	int index = hash(user_reference);
 
@@ -60,7 +60,7 @@ struct hash_node* lookup(char* user_reference) {
 	return NULL;
 }
 
-int rem_node(char* user_reference) {
+int hash_remove_node(char* user_reference) {
 	//conseguimos el index de donde vamos a recorrer
 	int index = hash(user_reference);
 
@@ -78,7 +78,7 @@ int rem_node(char* user_reference) {
 		int result = dev_close(arreglo[index]->internal_reference);
 		
 		//lo borramos
-		if (result == SUCCESS)
+		if (!result)
 		{
 			struct hash_node * temp = arreglo[index];
 			arreglo[index] = arreglo[index]->next;
@@ -96,7 +96,7 @@ int rem_node(char* user_reference) {
 			int result = dev_close(temp->next->internal_reference);
 			
 			//lo borramos
-			if (result == SUCCESS)
+			if (!result)
 			{
 				struct hash_node * a_borrar = temp->next;
 				temp->next = temp->next->next;
