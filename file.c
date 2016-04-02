@@ -8,6 +8,8 @@ struct file_metadata{
 	int block_list[64];
 };
 
+static struct file_metadata file_table[MAX_OPENED];
+
 int format_device(char* dev_name)
 {
 	//abrimos el device
