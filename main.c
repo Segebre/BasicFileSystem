@@ -2,10 +2,17 @@
 
 int main(int argc, char *argv[])
 {
-	format_device("fish");
+	//format_device("fish");
 	int dh = dev_open("fish"), i = 0;
-	while (!file_create(dh, "hoa"))
-		i++;
+	//while (!file_delete(dh, "hoa"))
+		//i++;
+	//while (!file_create(dh, "hoa"))
+		//i++;
+
+	file_rename(dh, "hoa", "123456789-123456789-123456789-123456789");
+	file_delete(dh, "123456789-123456789-123456789-123456789");
+	file_create(dh, "hoa");
+
 
 	printf("%d\n", i);
 	//c_init("$ ");
