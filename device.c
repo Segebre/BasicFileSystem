@@ -1,17 +1,17 @@
 #include "device.h"
 
-struct device_opened_in_table{
-	int buffer_size;
-	int block_count;
-	int format_status;
-	FILE *file;
-};
-
 struct device_metadata{
 	char check[6];
 	int buffer_size;
 	int block_count;
 	int format_status;
+};
+
+struct device_opened_in_table{
+	int buffer_size;
+	int block_count;
+	int format_status;
+	FILE *file;
 };
 
 static struct device_opened_in_table device_table[MAX_OPENED];

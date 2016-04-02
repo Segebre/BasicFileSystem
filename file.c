@@ -1,6 +1,7 @@
 #include "file.h"
 
 #define MIN(a, b) ((a) > (b))? (b) : (a)
+#define MAX_FILES	13
 
 struct file_metadata{
 	char name[32];
@@ -8,7 +9,14 @@ struct file_metadata{
 	int block_list[64];
 };
 
-static struct file_metadata file_table[MAX_OPENED];
+struct file_opened_in_table{
+	int dh;
+	char name[32];
+	int file_size;
+	int block_list[64];
+};
+
+static struct file_opened_in_table file_table[MAX_OPENED];
 
 int format_device(char* dev_name)
 {
@@ -205,6 +213,64 @@ int file_rename(int dh, char* file_name, char* file_name2)
 	return SUCCESS;
 }
 
+int file_open(int dh, char* file_name)
+{
+	//chequiamos si esta formateado
+	if (!dev_is_format(dh))
+		return DEVICE_NOT_FORMAT;
+
+	//creamos los arreglos y los iteradores
+	char* buffer = (char *)malloc(BLOCK_SIZE);
+	int file_to_open = -1;
+
+	//buscamos el metadata a renombrar
+	while (file_to_open < 64)
+	{
+		//cambia el bloque que se esta leyendo
+		if (!((file_to_open + 1) % 3))
+			dev_read_block(dh, buffer, ((file_to_open + 1) / 3) + 4);
+
+		//cambia el inodo que se esta leyendo
+		if (!memcmp((buffer + ((++file_to_open % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
+			break;
+		else if (!memcmp((buffer + ((++file_to_open % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
+			break;
+		else if (!memcmp((buffer + ((++file_to_open % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
+			break;
+	}
+
+	//chequiamos si hay espacios vacios
+	if (file_to_open >= 64)
+	{
+		free(buffer);
+		return CANNOT_ACCESS_FILE;
+	}
+
+
+	//busca cual esta vacio
+	int free_position;
+	for (free_position = 0; free_position < MAX_FILES; free_position++)
+	{
+		if (file_table[free_position].dh == -1)
+			break;
+	}
+
+	//si la tabla esta llena no lo guarda
+	if (free_position == MAX_FILES)
+		return EXTERNAL_INVALID_PARAMETERS;
+
+	//lo copiamos a un file_metadtata temporal y lo guardamos en el arreglo
+	struct file_metadata temp;
+	memcpy(&temp, (void *)(buffer + ((file_to_open % 3) * sizeof(struct file_metadata))), sizeof(struct file_metadata));
+	file_table[free_position].dh = dh;
+	memcpy(file_table[free_position].name, temp.name, MIN(strlen(temp.name), 32));
+	file_table[free_position].file_size = temp.file_size;
+	memcpy(file_table[free_position].block_list, temp.block_list, MIN(strlen(temp.name), 64 * 4));
+
+	free(buffer);
+	return free_position;
+}
+
 int file_get_available_block(int dh)
 {
 	//chequiamos si esta formateado
@@ -233,4 +299,11 @@ int file_get_available_block(int dh)
 	//si no hay disponibles
 	free(buffer);
 	return CANNOT_CREATE_FILE;
+}
+
+int file_table_init()
+{
+	int i;
+	for (int i = 0; i < MAX_FILES; i++)
+		file_table[i].dh = -1;
 }

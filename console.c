@@ -8,6 +8,7 @@ char *line;
 int c_init(char *p)
 {
 	hash_init();
+	file_table_init();
 
 	while (1) {
 		line = readline(p);

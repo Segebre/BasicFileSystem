@@ -10,5 +10,8 @@ int format_device(char* dev_name);
 int file_create(int dh, char* file_name);
 int file_delete(int dh, char* file_name);
 int file_rename(int dh, char* file_name, char* file_name2);
+int file_open(int dh, char* file_name);
+
+int file_table_init();
 
 #endif // FILE_H
