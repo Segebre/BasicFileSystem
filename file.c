@@ -107,52 +107,38 @@ int file_delete(int dh, char* file_name)
 		return DEVICE_NOT_FORMAT;
 
 	//creamos los arreglos y los iteradores
-	char* buffer = (char *)malloc(BLOCK_SIZE);
 	char* byte_map = (char *)malloc(BLOCK_SIZE);
-	int metadata_to_erase = -1, block_iterator = 0, byte_iterator = 0;
+	int block_iterator = 0, byte_iterator = 0;
 
 	//buscamos el metadata a borrar
-	while (metadata_to_erase < 64)
-	{
-		//cambia el bloque que se esta leyendo
-		if (!((metadata_to_erase + 1) % 3))
-			dev_read_block(dh, buffer, ((metadata_to_erase + 1) / 3) + 4);
+	int metadata_to_erase = file_metadata_lookup(dh, file_name);
+	if (metadata_to_erase < 0)
+		return metadata_to_erase;
 
-		//cambia el inodo que se esta leyendo
-		if (!memcmp((buffer + ((++metadata_to_erase % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
-			break;
-		else if (!memcmp((buffer + ((++metadata_to_erase % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
-			break;
-		else if (!memcmp((buffer + ((++metadata_to_erase % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
-			break;
-	}
+	//guardamos el metadata en un arreglo y luego en un struct
+	char* buffer = (char *)malloc(BLOCK_SIZE);
+	dev_read_block(dh, buffer, ((metadata_to_erase) / 3) + 4);
 
-	//chequiamos si hay espacios vacios
-	if (metadata_to_erase >= 64)
-	{
-		free(buffer);
-		return CANNOT_ACCESS_FILE;
-	}
-
-	//creamos el arreglo de bloques a liberar y lo llenamos
-	int block_list[64];
-	memcpy(block_list, (void *)(buffer + ((metadata_to_erase % 3) * sizeof(struct file_metadata)) + 32 + sizeof(int)), 64 * sizeof(int));
+	//lo guardamos en el struct
+	struct file_metadata temp;
+	memcpy(&temp, (void *)(buffer + ((metadata_to_erase % 3) * sizeof(struct file_metadata))), sizeof(struct file_metadata));
+	
 
 	//llenamos el byte_map
-	dev_read_block(dh, byte_map, (block_list[byte_iterator] / BLOCK_SIZE));
+	dev_read_block(dh, byte_map, (temp.block_list[byte_iterator] / BLOCK_SIZE));
 	while ( byte_iterator < 64)
 	{
 		//cambia el bloque que se esta leyendo
-		if ((block_list[byte_iterator] / BLOCK_SIZE) != block_iterator)
+		if ((temp.block_list[byte_iterator] / BLOCK_SIZE) != block_iterator)
 		{
 			dev_write_block(dh, byte_map, block_iterator);
-			dev_read_block(dh, byte_map, (block_list[byte_iterator] / BLOCK_SIZE));
-			block_iterator = block_list[byte_iterator] / BLOCK_SIZE;
+			dev_read_block(dh, byte_map, (temp.block_list[byte_iterator] / BLOCK_SIZE));
+			block_iterator = temp.block_list[byte_iterator] / BLOCK_SIZE;
 		}
 
 		//cambia el inodo que se esta leyendo
-		if(block_list[byte_iterator++])
-			byte_map[block_list[byte_iterator-1] % BLOCK_SIZE] = 0;
+		if(temp.block_list[byte_iterator++])
+			byte_map[temp.block_list[byte_iterator-1] % BLOCK_SIZE] = 0;
 	}
 	dev_write_block(dh, byte_map, block_iterator);
 
