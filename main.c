@@ -2,19 +2,27 @@
 
 int main(int argc, char *argv[])
 {
-	//format_device("fish");
+	format_device("fish");
 	int dh = dev_open("fish"), i = 0;
 	//while (!file_delete(dh, "hoa"))
 		//i++;
-	//while (!file_create(dh, "hoa"))
-		//i++;
+	while (!file_create(dh, "hoa"))
+		i++;
 
 	/*file_rename(dh, "hoa", "123456789-123456789-123456789-123456789");
 	file_delete(dh, "123456789-123456789-123456789-123456789");
 	file_create(dh, "hoa");*/
 
 	file_table_init();
-	printf("%d\n", file_open(dh, "hoa"));
+	char* buffer = "HOLAAAAAAAAAAAAAAA me dicen quique pero me llamo juan enrique, que cosas verdad?";
+	int fh = file_open(dh, "hoa");
+	//file_write(fh, 0, buffer, 100);
+	//file_close(fh);
+	file_delete(dh, "hoa");
+	//fh = file_open(dh, "hoa");
+	//buffer = "hol";
+	//file_write(fh, 0, buffer, 100);
+	printf("%d\n", fh);
 	printf("%d\n", file_open(dh, "hoa"));
 	printf("%d\n", file_open(dh, "hoa"));
 	printf("%d\n", file_close(1));

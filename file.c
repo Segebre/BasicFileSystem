@@ -257,7 +257,7 @@ int file_close(int fh)
 
 int file_write(int fh, int pos, char* buffer, int size)
 {
-	//chequea si el dh es aceptable
+	//chequea si el fh y los parametros son aceptable
 	if (fh < 0 || fh >= MAX_FILES || pos < 0 || size < 0)
 		return INVALID_PARAMETERS;
 
@@ -266,7 +266,7 @@ int file_write(int fh, int pos, char* buffer, int size)
 		return CANNOT_ACCESS_DEVICE;
 
 	//chequiamos si el tamaño del archivo es suficiente
-	if (file_table[fh].file_size <= pos || pos + size > BLOCK_SIZE * 64)
+	if (file_table[fh].file_size < pos || pos + size > BLOCK_SIZE * 64)
 		return UNSUFFICIENT_SPACE;
 
 	//si el arreglo de bloques esta vacio entonces agregamos el primero
@@ -306,12 +306,12 @@ int file_write(int fh, int pos, char* buffer, int size)
 					temp_metadata.file_size = pos + MIN((int)strlen(buffer), size);
 					memcpy(temp_metadata.block_list, file_table[fh].block_list, 64 * 4);
 
-					memset(buffer, 0, BLOCK_SIZE);
+					memset(buffer_interno, 0, BLOCK_SIZE);
 					int file_to_write = file_metadata_lookup(file_table[fh].dh, file_table[fh].name);
-					dev_read_block(file_table[fh].dh, buffer, ((file_to_write) / 3) + 4);
+					dev_read_block(file_table[fh].dh, buffer_interno, ((file_to_write) / 3) + 4);
 
-					memcpy((void *)(buffer + ((file_to_write % 3) * sizeof(struct file_metadata))), &temp_metadata, sizeof(struct file_metadata));
-					dev_write_block(file_table[fh].dh, buffer, (file_to_write / 3) + 4);
+					memcpy((void *)(buffer_interno + ((file_to_write % 3) * sizeof(struct file_metadata))), &temp_metadata, sizeof(struct file_metadata));
+					dev_write_block(file_table[fh].dh, buffer_interno, (file_to_write / 3) + 4);
 
 					return available_block;
 				}
@@ -325,9 +325,12 @@ int file_write(int fh, int pos, char* buffer, int size)
 		//copiamos de un buffer a otro
 		buffer_interno[(pos + i) % BLOCK_SIZE] = buffer[i];
 	}
+	//escribimos el ultimo bloque
+	dev_write_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[(pos + i) / BLOCK_SIZE]);
 
 	//creamos el struct y lo llenamos
 	struct file_metadata temp_metadata;
+	memset(temp_metadata.name, 0, 32);
 	memcpy(temp_metadata.name, file_table[fh].name, strlen(file_table[fh].name));
 	temp_metadata.file_size = pos + MIN((int)strlen(buffer), size);
 	memcpy(temp_metadata.block_list, file_table[fh].block_list, 64 * 4);
@@ -372,6 +375,8 @@ int file_get_available_block(int dh)
 		//cambia la posicion que se esta leyendo
 		if (!buffer[available_block++ % 1024])
 		{
+			memset(buffer, 0, BLOCK_SIZE);
+			dev_write_block(dh, buffer, available_block - 1);
 			free(buffer);
 			return available_block-1;
 		}
@@ -432,5 +437,6 @@ int file_metadata_lookup(int dh, char* file_name)
 		return CANNOT_ACCESS_FILE;
 	}
 
+	free(buffer);
 	return file_to_lookup;
 }
