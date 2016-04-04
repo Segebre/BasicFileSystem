@@ -14,11 +14,14 @@ int main(int argc, char *argv[])
 	file_create(dh, "hoa");*/
 
 	file_table_init();
-	char* buffer = "HOLAAAAAAAAAAAAAAA me dicen quique pero me llamo juan enrique, que cosas verdad?";
+	char buffer[80] = "HOLAAAAAAAAAAAAAAA me dicen quique pero me llamo juan enrique, que cosas verdad?";
 	int fh = file_open(dh, "hoa");
-	//file_write(fh, 0, buffer, 100);
-	//file_close(fh);
-	file_delete(dh, "hoa");
+	file_write(fh, 0, buffer, 100);
+	memset(buffer, 0, 80);
+	file_read(fh, 0, buffer, 80);
+	printf("%s\n", buffer);
+	file_close(fh);
+	//file_delete(dh, "hoa");
 	//fh = file_open(dh, "hoa");
 	//buffer = "hol";
 	//file_write(fh, 0, buffer, 100);

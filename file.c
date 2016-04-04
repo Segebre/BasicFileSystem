@@ -263,7 +263,7 @@ int file_write(int fh, int pos, char* buffer, int size)
 			file_table[fh].block_list[(pos) / BLOCK_SIZE] = available_block;
 	}
 
-	//hacemos un arreglo para excribir el buffer recibido
+	//hacemos un arreglo para escribir el buffer recibido
 	char* buffer_interno = (char *)malloc(BLOCK_SIZE);
 	dev_read_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[pos / BLOCK_SIZE]);
 
@@ -278,7 +278,8 @@ int file_write(int fh, int pos, char* buffer, int size)
 		if (!((pos + i) % BLOCK_SIZE))
 		{
 			//escribimos el bloque
-			dev_write_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[(pos + i - 1) / BLOCK_SIZE]);
+			if ((pos + i))
+				dev_write_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[(pos + i - 1) / BLOCK_SIZE]);
 
 			//si no hay siguiente bloque entonces usamos uno nuevo
 			if (!(file_table[fh].block_list[(pos + i) / BLOCK_SIZE]))
@@ -329,6 +330,50 @@ int file_write(int fh, int pos, char* buffer, int size)
 	//copiamos los datos y los escribimos en disco
 	memcpy((void *)(buffer_interno + ((file_to_write % 3) * sizeof(struct file_metadata))), &temp_metadata, sizeof(struct file_metadata));
 	dev_write_block(file_table[fh].dh, buffer_interno, (file_to_write / 3) + 4);
+
+	return SUCCESS;
+}
+
+int file_read(int fh, int pos, char* buffer, int size)
+{
+	//chequea si el fh y los parametros son aceptable
+	if (fh < 0 || fh >= MAX_FILES || pos < 0 || size < 0)
+		return INVALID_PARAMETERS;
+
+	//chequiamos si el archivo esta abierto
+	if (file_table[fh].dh == -1)
+		return CANNOT_ACCESS_DEVICE;
+
+	//chequiamos si el tamaño del archivo es suficiente
+	if (file_table[fh].file_size < pos || pos + size > BLOCK_SIZE * 64)
+		return UNSUFFICIENT_SPACE;
+
+	//si el arreglo de bloques esta vacio entonces termino
+	if (!(file_table[fh].block_list[(pos) / BLOCK_SIZE]))
+		return SUCCESS;
+
+	//hacemos un arreglo para leer al buffer recibido
+	char* buffer_interno = (char *)malloc(BLOCK_SIZE);
+	dev_read_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[pos / BLOCK_SIZE]);
+
+	//recorremos todo el arreglo a escribir
+	int i;
+	for (i = 0; i < size; i++)
+	{
+		//revisamos si hay que cambiar de bloque
+		if (!((pos + i) % BLOCK_SIZE))
+		{
+			//si no hay siguiente bloque entonces usamos uno nuevo
+			if (!(file_table[fh].block_list[(pos + i) / BLOCK_SIZE]))
+				return SUCCESS;
+
+			//leemos el nuevo bloque
+			dev_read_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[(pos + i) / BLOCK_SIZE]);
+		}
+
+		//copiamos de un buffer a otro
+		buffer[i] = buffer_interno[(pos + i) % BLOCK_SIZE];
+	}
 
 	return SUCCESS;
 }
