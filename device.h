@@ -11,7 +11,8 @@
 #define CANNOT_CREATE_FILE			-6
 #define FORMAT_NOT_ALLOWED			-7
 #define DEVICE_NOT_FORMAT			-8
-#define COMMAND_NOT_FOUND			-9
+#define UNSUFFICIENT_SPACE			-9
+#define COMMAND_NOT_FOUND			-10
 
 #include <stdio.h>
 #include <stdlib.h>

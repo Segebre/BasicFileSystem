@@ -9,20 +9,16 @@ int main(int argc, char *argv[])
 	//while (!file_create(dh, "hoa"))
 		//i++;
 
-	file_rename(dh, "hoa", "123456789-123456789-123456789-123456789");
+	/*file_rename(dh, "hoa", "123456789-123456789-123456789-123456789");
 	file_delete(dh, "123456789-123456789-123456789-123456789");
-	file_create(dh, "hoa");
+	file_create(dh, "hoa");*/
 
 	file_table_init();
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
-	file_open(dh, "hoa");
+	printf("%d\n", file_open(dh, "hoa"));
+	printf("%d\n", file_open(dh, "hoa"));
+	printf("%d\n", file_open(dh, "hoa"));
+	printf("%d\n", file_close(1));
+	printf("%d\n", file_open(dh, "hoa"));
 
 
 	printf("%d\n", i);

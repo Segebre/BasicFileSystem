@@ -7,6 +7,6 @@
 #include <editline/readline.h>
 
 int c_init(char *p);
-int c_process_line(char *line);
+static int c_process_line(char *line);
 
 #endif // CONSOLE_H

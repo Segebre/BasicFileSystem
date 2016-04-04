@@ -92,7 +92,7 @@ int file_create(int dh, char* file_name)
 	new_file_metadata.file_size = 0;
 	memset(new_file_metadata.block_list, 0, 64*4);
 
-	//lo escribimos en el arreglo y lueo en el archivo
+	//lo escribimos en el arreglo y luego en el archivo
 	memcpy((void *)(buffer + ((available_metadata % 3) * sizeof(struct file_metadata))), &new_file_metadata, sizeof(struct file_metadata)); // (void *)buffer[(available_metadata % 3) * sizeof(struct file_metadata)]
 	dev_write_block(dh, buffer, (available_metadata/3)+4);
 
@@ -204,7 +204,7 @@ int file_rename(int dh, char* file_name, char* file_name2)
 
 	//lo renombramos en el arreglo
 	memset((void *)(buffer + ((file_to_rename % 3) * sizeof(struct file_metadata))), 0, 32);
-	memcpy((void *)(buffer + ((file_to_rename % 3) * sizeof(struct file_metadata))), file_name2, MIN(file_name2, 32));
+	memcpy((void *)(buffer + ((file_to_rename % 3) * sizeof(struct file_metadata))), file_name2, MIN(strlen(file_name2), 32));
 
 	//escribimos en la metadata del archivo
 	dev_write_block(dh, buffer, (file_to_rename / 3) + 4);
@@ -215,49 +215,18 @@ int file_rename(int dh, char* file_name, char* file_name2)
 
 int file_open(int dh, char* file_name)
 {
-	//chequiamos si esta formateado
-	if (!dev_is_format(dh))
-		return DEVICE_NOT_FORMAT;
-
-	//creamos los arreglos y los iteradores
-	char* buffer = (char *)malloc(BLOCK_SIZE);
-	int file_to_open = -1;
-
-	//buscamos el metadata a renombrar
-	while (file_to_open < 64)
-	{
-		//cambia el bloque que se esta leyendo
-		if (!((file_to_open + 1) % 3))
-			dev_read_block(dh, buffer, ((file_to_open + 1) / 3) + 4);
-
-		//cambia el inodo que se esta leyendo
-		if (!memcmp((buffer + ((++file_to_open % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
-			break;
-		else if (!memcmp((buffer + ((++file_to_open % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
-			break;
-		else if (!memcmp((buffer + ((++file_to_open % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
-			break;
-	}
-
-	//chequiamos si hay espacios vacios
-	if (file_to_open >= 64)
-	{
-		free(buffer);
-		return CANNOT_ACCESS_FILE;
-	}
-
+	//buscamos el metadata
+	int file_to_open = file_metadata_lookup(dh, file_name);
+	if (file_to_open < 0)
+		return file_to_open;
 
 	//busca cual esta vacio
-	int free_position;
-	for (free_position = 0; free_position < MAX_FILES; free_position++)
-	{
-		if (file_table[free_position].dh == -1)
-			break;
-	}
+	int free_position = file_table_next();
+	if (free_position < 0)
+		return free_position;
 
-	//si la tabla esta llena no lo guarda
-	if (free_position == MAX_FILES)
-		return EXTERNAL_INVALID_PARAMETERS;
+	char* buffer = (char *)malloc(BLOCK_SIZE);
+	dev_read_block(dh, buffer, ((free_position) / 3) + 4);
 
 	//lo copiamos a un file_metadtata temporal y lo guardamos en el arreglo
 	struct file_metadata temp;
@@ -269,6 +238,118 @@ int file_open(int dh, char* file_name)
 
 	free(buffer);
 	return free_position;
+}
+
+int file_close(int fh)
+{
+	//chequea si el dh es aceptable
+	if (fh < 0 || fh >= MAX_FILES)
+		return INVALID_PARAMETERS;
+
+	//chequiamos si el archivo esta abierto
+	if (file_table[fh].dh == -1)
+		return CANNOT_ACCESS_DEVICE;
+
+	//lo cerramos y lo ponemos en -1 en el arreglo
+	file_table[fh].dh = -1;
+	return SUCCESS;
+}
+
+int file_write(int fh, int pos, char* buffer, int size)
+{
+	//chequea si el dh es aceptable
+	if (fh < 0 || fh >= MAX_FILES || pos < 0 || size < 0)
+		return INVALID_PARAMETERS;
+
+	//chequiamos si el archivo esta abierto
+	if (file_table[fh].dh == -1)
+		return CANNOT_ACCESS_DEVICE;
+
+	//chequiamos si el tamaño del archivo es suficiente
+	if (file_table[fh].file_size <= pos || pos + size > BLOCK_SIZE * 64)
+		return UNSUFFICIENT_SPACE;
+
+	//si el arreglo de bloques esta vacio entonces agregamos el primero
+	if (!(file_table[fh].block_list[(pos) / BLOCK_SIZE]))
+	{
+		int available_block = file_get_available_block(file_table[fh].dh);
+		if (available_block > 0)
+			file_table[fh].block_list[(pos) / BLOCK_SIZE] = available_block;
+	}
+
+	//hacemos un arreglo para excribir el buffer recibido
+	char* buffer_interno = (char *)malloc(BLOCK_SIZE);
+	dev_read_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[pos / BLOCK_SIZE]);
+
+	//escribimos lo que menos espacio tome
+	size = MIN((int)strlen(buffer), size);
+
+	//recorremos todo el arreglo a escribir
+	int i;
+	for (i = 0; i < size; i++)
+	{
+		//revisamos si hay que cambiar de bloque
+		if (!((pos + i) % BLOCK_SIZE))
+		{
+			//escribimos el bloque
+			dev_write_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[(pos + i - 1) / BLOCK_SIZE]);
+
+			//si no hay siguiente bloque entonces usamos uno nuevo
+			if (!(file_table[fh].block_list[(pos + i) / BLOCK_SIZE]))
+			{
+				//revisamos si hay bloques disponibles, sino entonces guardamos lo que tenemos y retornamos el error
+				int available_block = file_get_available_block(file_table[fh].dh);
+				if (available_block < 0)
+				{
+					struct file_metadata temp_metadata;
+					memcpy(temp_metadata.name, file_table[fh].name, strlen(file_table[fh].name));
+					temp_metadata.file_size = pos + MIN((int)strlen(buffer), size);
+					memcpy(temp_metadata.block_list, file_table[fh].block_list, 64 * 4);
+
+					memset(buffer, 0, BLOCK_SIZE);
+					int file_to_write = file_metadata_lookup(file_table[fh].dh, file_table[fh].name);
+					dev_read_block(file_table[fh].dh, buffer, ((file_to_write) / 3) + 4);
+
+					memcpy((void *)(buffer + ((file_to_write % 3) * sizeof(struct file_metadata))), &temp_metadata, sizeof(struct file_metadata));
+					dev_write_block(file_table[fh].dh, buffer, (file_to_write / 3) + 4);
+
+					return available_block;
+				}
+				//lo agregamos a la lista de bloques
+				file_table[fh].block_list[(pos + i) / BLOCK_SIZE] = available_block;
+			}
+			//leemos el nuevo bloque
+			dev_read_block(file_table[fh].dh, buffer_interno, file_table[fh].block_list[(pos + i) / BLOCK_SIZE]);
+		}
+
+		//copiamos de un buffer a otro
+		buffer_interno[(pos + i) % BLOCK_SIZE] = buffer[i];
+	}
+
+	//creamos el struct y lo llenamos
+	struct file_metadata temp_metadata;
+	memcpy(temp_metadata.name, file_table[fh].name, strlen(file_table[fh].name));
+	temp_metadata.file_size = pos + MIN((int)strlen(buffer), size);
+	memcpy(temp_metadata.block_list, file_table[fh].block_list, 64 * 4);
+
+	//reiniciamos el buffer_interno en 0 y leemos la metadata hacia el
+	memset(buffer_interno, 0, BLOCK_SIZE);
+	int file_to_write = file_metadata_lookup(file_table[fh].dh, file_table[fh].name);
+	dev_read_block(file_table[fh].dh, buffer_interno, ((file_to_write) / 3) + 4);
+
+	//copiamos los datos y los escribimos en disco
+	memcpy((void *)(buffer_interno + ((file_to_write % 3) * sizeof(struct file_metadata))), &temp_metadata, sizeof(struct file_metadata));
+	dev_write_block(file_table[fh].dh, buffer_interno, (file_to_write / 3) + 4);
+
+	return SUCCESS;
+}
+
+int file_table_init()
+{
+	int i;
+	for (i = 0; i < MAX_FILES; i++)
+		file_table[i].dh = -1;
+	return SUCCESS;
 }
 
 int file_get_available_block(int dh)
@@ -298,12 +379,58 @@ int file_get_available_block(int dh)
 	
 	//si no hay disponibles
 	free(buffer);
-	return CANNOT_CREATE_FILE;
+	return UNSUFFICIENT_SPACE;
 }
 
-int file_table_init()
+int file_table_next()
 {
-	int i;
-	for (int i = 0; i < MAX_FILES; i++)
-		file_table[i].dh = -1;
+	//recorremos el arreglo
+	int free_position;
+	for (free_position = 0; free_position < MAX_FILES; free_position++)
+	{
+		if (file_table[free_position].dh == -1)
+			break;
+	}
+
+	//si la tabla esta llena no lo guarda
+	if (free_position == MAX_FILES)
+		return EXTERNAL_INVALID_PARAMETERS;
+
+	return free_position;
+}
+
+int file_metadata_lookup(int dh, char* file_name)
+{
+	//chequiamos si esta formateado
+	if (!dev_is_format(dh))
+		return DEVICE_NOT_FORMAT;
+
+	//creamos los arreglos y los iteradores
+	char* buffer = (char *)malloc(BLOCK_SIZE);
+	int file_to_lookup = -1;
+
+	//buscamos el metadata a renombrar
+	while (file_to_lookup < 64)
+	{
+		//cambia el bloque que se esta leyendo
+		if (!((file_to_lookup + 1) % 3))
+			dev_read_block(dh, buffer, ((file_to_lookup + 1) / 3) + 4);
+
+		//cambia el inodo que se esta leyendo
+		if (!memcmp((buffer + ((++file_to_lookup % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
+			break;
+		else if (!memcmp((buffer + ((++file_to_lookup % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
+			break;
+		else if (!memcmp((buffer + ((++file_to_lookup % 3) * sizeof(struct file_metadata))), file_name, MIN(strlen(file_name), 32)))
+			break;
+	}
+
+	//chequiamos si se encontro
+	if (file_to_lookup >= 64)
+	{
+		free(buffer);
+		return CANNOT_ACCESS_FILE;
+	}
+
+	return file_to_lookup;
 }
